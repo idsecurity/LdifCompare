@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>se.idsecurity.LdifCompare</groupId>
+    <artifactId>se.idsecurity.LdifCompare</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>com.unboundid</groupId>
+            <artifactId>unboundid-ldapsdk</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.12</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.12</version>
+        </dependency>
+    </dependencies>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+    <name>LdifCompare</name>
+    <build>
+        <plugins>
+             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.5.4</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/assembly/assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <!-- Configures the created archive -->
+                    <archive>
+                        <!-- Configures the content of the created manifest -->
+                        <manifest>
+                            <!-- Adds the classpath to the created manifest -->
+                            <addClasspath>true</addClasspath>
+                            <!--
+                                Specifies that all dependencies of our application are found
+                                from the lib directory.
+                            -->
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <!-- Configures the main class of the application -->
+                            <mainClass>se.idsecurity.ldifcompare.LdifUtilities</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+           <plugin>
+              <groupId>com.ruleoftech</groupId>
+                <artifactId>markdown-page-generator-plugin</artifactId>
+                <version>0.4</version>
+                <executions>
+                    <execution>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <headerHtmlFile>${basedir}/header.html</headerHtmlFile>
+                    <footerHtmlFile>${basedir}/footer.html</footerHtmlFile>
+                    <inputDirectory>${basedir}</inputDirectory>
+                    <outputDirectory>${basedir}</outputDirectory>
+                    <inputEncoding>ISO-8859-15</inputEncoding>
+                    <outputEncoding>ISO-8859-15</outputEncoding>
+                </configuration>
+           </plugin>
+            
+        </plugins>
+        <finalName>LDIFCompare-${project.version}</finalName>
+    </build>
+</project>

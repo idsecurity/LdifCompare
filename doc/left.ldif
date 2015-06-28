@@ -1,0 +1,38 @@
+version: 1
+
+dn: cn=Rolf Nilsson,ou=Users,o=Meta
+objectClass: inetOrgPerson
+givenName: Rolf
+sn: Nilsson
+cn: Rolf Nilsson
+uid: ronil
+title: Midsommarfirare
+lastLogon: 20150606123100Z
+
+dn: cn=Jan Fredriksson,ou=Users,o=Meta
+objectClass: inetOrgPerson
+givenName: Jan
+sn: Fredriksson
+cn: Jan Fredriksson
+uid: jafre
+title: Inskaffare av diverse drick
+lastLogon: 20140602123100Z
+
+dn: cn=Rick Per,ou=Users,o=Meta
+objectClass: user
+givenName: Peter
+sn: Per
+cn: Rick Per
+uid: peper
+title: En glad deltagare
+lastLogon: 20130203143100Z
+
+dn: cn=Andreas Svensson,ou=Users,o=Meta
+objectClass: user
+givenName: Andreas
+sn: Sven
+uid: ansvensson
+cn: Andreas Svensson
+title: Festgeneral
+lastLogon: 20150618090000Z
+
