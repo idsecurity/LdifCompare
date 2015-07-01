@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta charset="ISO-8859-15">
 <title>LDIFCompare</title>
 </head>
 
@@ -25,7 +25,7 @@
   <li>-reverse-change_records.txt, contains the the modifications that must be performed on an entry from the "right" file to match the entry from the "left" file.</li>
   <li>-unique-&lt;left file name&gt;.ldif, contains the entries that only exist in the "left" file.</li>
   <li>-unique-&lt;right file name&gt;.ldif, contains the entries that only exist in the "right" file.</li>
-</ul><h1>Example usage</h1><p>Let's say you have two files you want to compare, the original "left" file and the post-operation "right" file.</p><p>You would execute the following command to compare them:</p><p><code>java -jar LDIFCompare-1.0.jar --ldifLeft ./left.ldif --ldifRight ./right.ldif --output /path/to/outputdirectory --properties ./ldifcompare.properties</code></p><p>The <code>ldifcompare.properties</code> file must contains one property called <code>ignore-attributes=attr1,attr2</code>. The values of the property are the names of the attributes to ignore when comparing, separated with a comma. For an example see the <code>doc/ldifcompare.properties</code> file. In the example above you would replace attr1,attr2 with the actual attribute names.</p><p>During a compare the DN is used to match entries between two LDIF-files, if an entry is moved, deleted or renamed then you won't get a match.</p><p>If you want to use an attribute instead of the DN to match two entries then you can do that by specifying the following property in the properties file: <em>match-attribute=nameOfAttribute</em></p><h1>Limitations</h1><p>Handles only LDIF files containing content records or add records. Modify records and other changetypes are not supported.</p>
+</ul><h1>Example usage</h1><p>Let's say you have two files you want to compare, the original "left" file and the post-operation "right" file.</p><p>You would execute the following command to compare them:</p><p><code>java -jar LDIFCompare-1.0.jar --ldifLeft ./left.ldif --ldifRight ./right.ldif --output /path/to/outputdirectory --properties ./ldifcompare.properties</code></p><p>The <code>ldifcompare.properties</code> file must contains one property called <code>ignore-attributes=attr1,attr2</code>. The values of the property are the names of the attributes to ignore when comparing, separated with a comma. For an example see the <code>doc/ldifcompare.properties</code> file. In the example above you would replace attr1,attr2 with the actual attribute names.</p><p>During a compare the DN is used to match entries between two LDIF-files, if an entry is moved, deleted or renamed then you won't get a match.</p><p>If you want to use an attribute instead of the DN to match two entries then you can do that by specifying the following property in the properties file: <em>match-attribute=nameOfAttribute</em></p><h1>Limitations</h1><p>Handles only LDIF files containing content records or add records. Modify records and other changetypes are not supported.</p><h1>License</h1><p><a href="http://www.gnu.org/licenses/gpl-3.0.txt">GPL v3.0</a></p>
 </body>
 
 </html>

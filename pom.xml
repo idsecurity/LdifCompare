@@ -79,8 +79,8 @@
                     <footerHtmlFile>${basedir}/footer.html</footerHtmlFile>
                     <inputDirectory>${basedir}</inputDirectory>
                     <outputDirectory>${basedir}</outputDirectory>
-                    <inputEncoding>ISO-8859-15</inputEncoding>
-                    <outputEncoding>ISO-8859-15</outputEncoding>
+                    <inputEncoding>UTF-8</inputEncoding>
+                    <outputEncoding>UTF-8</outputEncoding>
                 </configuration>
            </plugin>
             
