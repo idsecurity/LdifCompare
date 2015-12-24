@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>se.idsecurity.LdifCompare</groupId>
     <artifactId>se.idsecurity.LdifCompare</artifactId>
-    <version>1.0</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -20,6 +20,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.12</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.4</version>
         </dependency>
     </dependencies>
     <properties>

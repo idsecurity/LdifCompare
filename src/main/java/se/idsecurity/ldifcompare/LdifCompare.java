@@ -31,7 +31,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +49,7 @@ import org.slf4j.LoggerFactory;
  */
 public class LdifCompare {
     private final static Logger logger = LoggerFactory.getLogger(LdifCompare.class);
-    private final int SETSIZE = 30000;
+    private final int SETSIZE = 100000;
     private final File leftLdif;
     private final File rightLdif;
     private final File entriesThatDiffOrDontExistsInLeftLdif;
@@ -53,11 +60,31 @@ public class LdifCompare {
     
     private LDIFReader reader_leftLdif;
     private LDIFReader reader_rightLdif;
-    private LDIFWriter writer_diffLdif;
+    
     private LDIFWriter writer_entriesOnlyInLeftLdif;
     private LDIFWriter writer_entriesOnlyInRightLdif;
     
     private final List<String> attributesToIgnoreWhenComparing;
+    
+    /**
+     * Used for executing our Runnable objects
+     * @since 1.2
+     */
+    private final ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    /**
+     * Used for notification when the LDIF files have been read since each file
+     * is read by its own thread.
+     *
+     * @since 1.2
+     */
+    private final CountDownLatch fileReadCdl = new CountDownLatch(2);
+    /**
+     * Used for notification when the output files have been written so that we
+     * can close them since each file is written in its own thread.
+     *
+     * @since 1.2
+     */
+    private final CountDownLatch fileWriteCdl = new CountDownLatch(2);
     
     /**
      * Attribute names to use for matching
@@ -108,19 +135,18 @@ public class LdifCompare {
     /**
      * Call this method to start the entire comparison process
      * @throws IOException 
+     * @throws java.lang.InterruptedException 
      */
-    public void start() throws IOException {
+    public void start() throws IOException, InterruptedException {
         reader_leftLdif = new LDIFReader(leftLdif);
         reader_rightLdif = new LDIFReader(rightLdif);
-        writer_diffLdif = new LDIFWriter(entriesThatDiffOrDontExistsInLeftLdif);
+        
         writer_entriesOnlyInLeftLdif = new LDIFWriter(entriesOnlyInLeftLdif);
         writer_entriesOnlyInRightLdif = new LDIFWriter(entriesOnlyInRightLdif);
         
         try {
             logger.error("Write comments to {}", entriesThatDiffOrDontExistsInLeftLdif.getPath());
-            writer_diffLdif.writeVersionHeader();
-            writer_diffLdif.writeComment("This file contains entries from " + rightLdif.getName() +  " that differ in some way from entries in " + leftLdif.getName(), false, true);
-            
+           
             logger.error("Write comments to {}", entriesOnlyInLeftLdif.getPath());
             writer_entriesOnlyInLeftLdif.writeVersionHeader();
             writer_entriesOnlyInLeftLdif.writeComment("Applicable only when matching using DN!", false, false);
@@ -130,31 +156,81 @@ public class LdifCompare {
             writer_entriesOnlyInRightLdif.writeVersionHeader();
             writer_entriesOnlyInRightLdif.writeComment("Applicable only when matching using DN!", false, false);
             writer_entriesOnlyInRightLdif.writeComment("This file contain entries that only exist in " + rightLdif.getName() + ", i.e. they are missing for some reason in " + leftLdif.getName() + " or have been renamed/moved and have a different DN.", false, true);
-            
-            
-            
-            logger.error("Reading file 1: {}", leftLdif.getPath());
-            Set<Entry> entriesFromLeftFile = new HashSet<>(SETSIZE);
-            while (true) {
-               Entry entry = reader_leftLdif.readEntry();
-                
-                if (entry == null) {
-                    break;
-               }
 
-                entriesFromLeftFile.add(removeIgnoredAttributesFromEntry(entry));
-            }
-            
-            logger.error("Reading file 2: {}", rightLdif.getPath());
-            Set<Entry> entriesFromRightFile = new HashSet<>(SETSIZE);
-            while (true) {
-               Entry entry = reader_rightLdif.readEntry();
-                
-                if (entry == null) {
-                    break;
+            Set<Entry> entriesFromLeftFile = new HashSet<>(SETSIZE);
+           
+            /**
+             * Reads the "left" file in its own thread.
+             * @since 1.2
+            */
+            Runnable leftRunnable = () -> {
+                StopWatch sw = new StopWatch();
+                sw.start();
+                logger.error("Reading file 1: {}", leftLdif.getPath());
+                Entry entry = null;
+                while (true) {
+                    
+                    try {
+                        entry = reader_leftLdif.readEntry();
+                    } catch (LDIFException | IOException e) {
+                        logger.error("Exception occured", e);
+                    }
+
+                    if (entry == null) {
+                        break;
+                    }
+
+                    entry = removeIgnoredAttributesFromEntry(entry);
+                    entriesFromLeftFile.add(entry);
+                    
+                   
                 }
-                
-                entriesFromRightFile.add(removeIgnoredAttributesFromEntry(entry));
+                sw.stop();
+                logger.error("Reading file 1: {} took {}", leftLdif.getPath(), sw.toString());
+                fileReadCdl.countDown();
+            };
+            
+            exec.execute(leftRunnable);
+            
+            
+            Set<Entry> entriesFromRightFile = new HashSet<>(SETSIZE);
+            
+            /**
+             * Reads the "right" file in its own thread.
+             * @since 1.2
+             */
+            Runnable rightRunnable = () -> {
+                StopWatch sw = new StopWatch();
+                sw.start();
+                logger.error("Reading file 2: {}", rightLdif.getPath());
+                Entry entry = null;
+                while (true) {
+                    
+                    try {
+                        entry = reader_rightLdif.readEntry();
+                    } catch (LDIFException | IOException e) {
+                        logger.error("Exception occured", e);
+                    }
+
+                    if (entry == null) {
+                        break;
+                    }
+                    entry = removeIgnoredAttributesFromEntry(entry);
+                    entriesFromRightFile.add(entry);
+                    
+                }
+                sw.stop();
+                logger.error("Reading file 2: {} took {}", rightLdif.getPath(), sw.toString());
+                fileReadCdl.countDown();
+            };
+            
+            exec.execute(rightRunnable);
+            
+            try {
+                fileReadCdl.await();//Wait for the file reads to complete
+            } catch (InterruptedException e) {
+                logger.error("Thread interrupted", e);
+                throw e;
             }
 
             //If matchingAttributeNames is available then will do a matching using attribute values instead of DN
@@ -173,21 +249,21 @@ public class LdifCompare {
                 File reverseNonMatching = new File(diffFile.getParentFile(), fileNameDate + "-reverse-no-match.txt");
                 File reverseNonMatchingLdif = new File(reverseNonMatching.getParentFile(), fileNameDate + "-reverse-no-match.ldif");
                 getReverseNonMatchingEntriesUsingMatchingAttributes(entriesFromLeftFile, entriesFromRightFile, matchingAttributeNames.get(), reverseNonMatching, reverseNonMatchingLdif);
-                
+                fileWriteCdl.countDown();
+                fileWriteCdl.countDown();
             } else {
                 //Write the change records for entries that have the same DN but differ in some way
                 logger.error("Will perform diff matching using DN");
                 getMatchUsingDN(entriesFromLeftFile, entriesFromRightFile);
             }
 
-        } catch (IOException | LDIFException e) {
+            //Wait for the file writes to complete before closing the files in the finally block
+            fileWriteCdl.await();
+            
+        } catch (IOException e) {
             logger.error("Exception occured", e);
         } finally {
-            try {
-                writer_diffLdif.close();
-            } catch (IOException close) { 
-                logger.error("Error closing writer_diffLdif", close); 
-            }
+            
             try {
                 writer_entriesOnlyInLeftLdif.close();
             } catch (IOException close) {
@@ -208,7 +284,9 @@ public class LdifCompare {
                 reader_rightLdif.close();
             } catch (IOException close) {
                 logger.error("Error closing reader_rightLdif", close);
-            }   
+            }
+            logger.error("Shut down the ExecutorService");
+            exec.shutdown();
         }
         
     }
@@ -220,24 +298,40 @@ public class LdifCompare {
      * @param diffFile Write results to this file
      * @param comment Comment to write to the file
      * @throws FileNotFoundException 
+     * @since 1.2
      */
     private void getDiffUsingDN(Set<Entry> source, Set<Entry> target, File diffFile, String comment) throws FileNotFoundException { 
+        StopWatch sw = new StopWatch();
+        sw.start();
+        
+        ConcurrentMap<String, Entry> collect = source.parallelStream().collect(Collectors.toConcurrentMap(Entry::getDN, Function.identity()));
+        sw.stop();
+        logger.error("Set -> ConcurrentMap: " + sw.toString());
+        sw.reset();
+        
+        
         try (PrintWriter writer = new PrintWriter(diffFile)) {
             
             writer.println(comment);
+            
+            sw.start();
             for (Entry targetEntry : target) {
-                for (Entry sourceEntry : source) {
-                    if (sourceEntry.getDN().equals(targetEntry.getDN())) {
-                        writer.println();
-                        writer.println(targetEntry.getDN());
-                        List<Modification> diff = Entry.diff(sourceEntry, targetEntry, false);
-                        for (Modification mod : diff) {
+                String dn = targetEntry.getDN();
+                Entry sEntry = collect.get(dn);
+                if (sEntry != null) {
+                    writer.println();
+                    writer.println(dn);
+                    List<Modification> diff = Entry.diff(sEntry, targetEntry, false);
+                    for (Modification mod : diff) {
                             writer.println(mod);
-                        }
                     }
                 }
+                
             }
         }
+            sw.stop();
+            logger.error("Time taken to loop inside getDiffUsingDN: " + sw.toString());
+       
     }
     
     /**
@@ -371,56 +465,57 @@ public class LdifCompare {
      */
     private void getMatchUsingDN(Set<Entry> firstLdif, Set<Entry> secondLdif) throws IOException {
             //Entries from the rightLdif that differ or don't exist in leftLdif file
-            Set<Entry> difference = new HashSet<>(secondLdif);
-            difference.removeAll(firstLdif);//Remove all entries from difference that exist in the firstLdif file
+            Set<Entry> secondLdifFirstLdifDiff = new HashSet<>(secondLdif);
+            secondLdifFirstLdifDiff.removeAll(firstLdif);//Remove all entries that exist in the firstLdif file
          
             //Create diff file that will show the modifications that are necessary to perform on an entry from the LEFT file to be the same as the entry from the RIGHT file
             String comment = "For the entry from the FIRST LDIF file to match the entry from the SECOND LDIF file the following modifications must be made to the entry from the FIRST LDIF file.";
-            getDiffUsingDN(firstLdif, difference, diffFile, comment);
+            getDiffUsingDN(firstLdif, secondLdifFirstLdifDiff, diffFile, comment);
             //Write the entries from rightLdif that differ in some way from leftLdif
-            for (Entry e : difference) {
-                
-
-                //Get unique entries from the rightLdif file based on DN - no entry with the same DN exist in leftLdif
-                String dn = e.getDN();
-                boolean unique = true;
-                for (Entry entryFromLeft : firstLdif) {
-                    if (entryFromLeft.getDN().equals(dn)) {
-                        unique = false;
-                        writer_diffLdif.writeEntry(e);//Entry exists in both files but differs
-                        break;
-                    }
-                }
-                if (unique) {
-                    writer_entriesOnlyInRightLdif.writeEntry(e);//Entry only exists in rightLdif
-                }
-
-            }
-            
+            getUniqueEntriesUsingDN(secondLdif, firstLdif, writer_entriesOnlyInRightLdif);
             
             //Entries from the leftLdif file that differ or don't exist in the rightLdif file
-            firstLdif.removeAll(secondLdif);//Remove all entries from firstLdif that are the same in as the entries in secondLdif
-             
+            Set<Entry> firstLdifSecondLdifDiff = new HashSet<>(firstLdif);//Remove all entries from firstLdif that are the same in as the entries in secondLdif
+            firstLdifSecondLdifDiff.removeAll(secondLdif);
+            
             //Create diff file that will show the modifications that are necessary to perform on an entry from the RIGHT file to be the same as the entry from the LEFT file
             comment = "For the entry from the SECOND LDIF file to match the entry from the FIRST LDIF file the following modifications must be made to the entry from the SECOND LDIF file.";
-            getDiffUsingDN(secondLdif, firstLdif, new File(diffFile.getParentFile(), fileNameDate + "-reverse-change_records.txt"), comment);
+            getDiffUsingDN(secondLdif, firstLdifSecondLdifDiff, new File(diffFile.getParentFile(), fileNameDate + "-reverse-change_records.txt"), comment);
             
-            
-            for (Entry e : firstLdif) {
-                //Get unique entries from the leftLdif file based on DN - no entry with the same DN doesn't exist in rightLdif
-                String dn = e.getDN();
-                boolean unique = true;
-                for (Entry entryFromRight : secondLdif) {
-                    if (entryFromRight.getDN().equals(dn)) {
-                        unique = false;
-                        break;
-                    }
-                }
-                if (unique) {
-                    writer_entriesOnlyInLeftLdif.writeEntry(e);//Entry only exits in leftLdif
-                }
 
-            }
+            getUniqueEntriesUsingDN(firstLdif, secondLdif, writer_entriesOnlyInLeftLdif);
+
+
     }
 
+    private void getUniqueEntriesUsingDN(Set<Entry> source, Set<Entry> target, LDIFWriter ldifWriterUnique) {
+        Runnable r = () -> {
+            StopWatch sw = new StopWatch();
+            sw.start();
+            ConcurrentMap<String, Entry> targetMap = target.parallelStream().collect(Collectors.toConcurrentMap(Entry::getDN, Function.identity()));
+            
+
+            for (Entry e : source) {
+                //Get unique entries from the rightLdif file based on DN - no entry with the same DN exist in leftLdif
+                String dn = e.getDN();
+                if (!targetMap.containsKey(dn)) {
+                    try {
+                        ldifWriterUnique.writeEntry(e);//Entry only exists in rightLdif
+                    } catch (IOException ex) {
+                        logger.error("Error writing to LDIF file", ex);
+                    }
+                }
+            }
+            fileWriteCdl.countDown();
+        
+            sw.stop();
+            logger.error("Time taken to process getUniqueEntriesUsingDN(): " + sw.toString());
+            sw.reset();
+        };
+        
+        exec.execute(r);
+
+    }
+    
+    
 }

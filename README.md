@@ -7,6 +7,7 @@
 - Java 8u40 or newer
 - UnboundID LDAP SDK
 - SLF4J
+- Apache Commons Lang
 
 # Instructions
 
@@ -48,7 +49,6 @@ It will output five files:
 Each file is prefixed with the date and time of the operation in the following format:
 yyyy-MM-dd HHmmss
 
-- -diff.ldif, contains the entire LDIF record of the entries from the "right" file that don't match the corresponding entry from the "left" file.
 - -change_records.txt, contains the modifications that must be performed on an entry from the "left" file to match the entry from the "right" file.
 - -reverse-change_records.txt, contains the the modifications that must be performed on an entry from the "right" file to match the entry from the "left" file.
 - -unique-\<left file name>.ldif, contains the entries that only exist in the "left" file.
@@ -75,6 +75,24 @@ If you want to use an attribute instead of the DN to match two entries then you 
 # Limitations
 
 Handles only LDIF files containing content records or add records. Modify records and other changetypes are not supported.
+
+# Changelog
+
+ \+ Added feature            
+ \* Improved/changed feature 
+ \- Bug fixed/refactoring    
+ ! security bug fix         
+ ~ partial implementation   
+
+v1.2
+
+\* Removed the LDIF file that contained entire entries that differed in some way but without any information on what actually differed.
+
+\* Introduced threading and performance optimizations, for example comparing two LDIF files, 463 MB and 314 MB using the DN as key previously took ~20 minutes. Now it takes ~40 seconds. An improvement by a factor of 30.
+
+\+ Outputs the time to run each operation to stdout.
+
+
 
 # License
 

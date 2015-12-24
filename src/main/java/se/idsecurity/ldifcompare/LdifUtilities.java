@@ -27,6 +27,8 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
+import java.util.logging.Level;
+import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,7 +151,16 @@ public class LdifUtilities extends CommandLineTool {
         LdifCompare compare = new LdifCompare(leftLdif, rightLdif, outputDirectory, property.getCommaSeparatedPropertyAsList("ignore-attributes"), man);
         
         try {
-            compare.start();
+            try {
+                StopWatch sw = new StopWatch();
+                sw.start();
+                compare.start();
+                sw.stop();
+                log.info("Total runtime: " + sw.toString());
+            } catch (InterruptedException ex) {
+                log.error("Thread interrupted", ex);
+                return ResultCode.LOCAL_ERROR;
+            }
             return ResultCode.SUCCESS;
         } catch (IOException e) {
             log.error("LdifCompare failed", e);
