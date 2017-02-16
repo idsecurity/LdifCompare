@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2015 almu
+ * Copyright (C) 2015-2017 almu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ import com.unboundid.ldap.sdk.ResultCode;
 import com.unboundid.util.CommandLineTool;
 import com.unboundid.util.args.ArgumentException;
 import com.unboundid.util.args.ArgumentParser;
+import com.unboundid.util.args.BooleanArgument;
 import com.unboundid.util.args.FileArgument;
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +28,6 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
-import java.util.logging.Level;
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +47,9 @@ public class LdifUtilities extends CommandLineTool {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        
+        if (args.length == 0) {
+            args = new String[] { "-H" };
+        }
         final ResultCode resultCode = main(args, System.out, System.err);
         if (resultCode != ResultCode.SUCCESS) {
             System.exit(resultCode.intValue());
@@ -95,7 +97,7 @@ public class LdifUtilities extends CommandLineTool {
 
     @Override
     public String getToolName() {
-        return "LDIF Utilities";
+        return "LDIFCompare";
     }
 
     @Override
@@ -111,11 +113,16 @@ public class LdifUtilities extends CommandLineTool {
         
         FileArgument propertiesFile = new FileArgument(null, "properties", true, 1, "c:/path/ldifcompare.properties", "Properties file that governs the behavior of the comparison", false, true, true, false);
      
+        BooleanArgument generateDeleteLdif = new BooleanArgument('d', "delete", "Generate DELETE LDIF files for entries that are missing from the \"left\" file");
+        
+        
         parser.addArgument(leftLdifFile);
         parser.addArgument(rightLdifFile);
         parser.addArgument(outputDirectory);
         
         parser.addArgument(propertiesFile);
+        
+        parser.addArgument(generateDeleteLdif);
         
         this.parser = parser;
     }
@@ -150,6 +157,8 @@ public class LdifUtilities extends CommandLineTool {
         
         LdifCompare compare = new LdifCompare(leftLdif, rightLdif, outputDirectory, property.getCommaSeparatedPropertyAsList("ignore-attributes"), man);
         
+        compare.setGenerateDeleteLdifForMissingEntries(((BooleanArgument)parser.getNamedArgument("delete")).isPresent());
+        
         try {
             try {
                 StopWatch sw = new StopWatch();
@@ -169,6 +178,12 @@ public class LdifUtilities extends CommandLineTool {
         
        
     }
+
+    @Override
+    public String getToolVersion() {
+        Package pkg = this.getClass().getPackage();
+        return pkg.getImplementationVersion();
+    }
     
     
   /**
@@ -186,6 +201,7 @@ public class LdifUtilities extends CommandLineTool {
       "--ldifRight", "c:/path/right.ldif",
       "--output", "c:/path/outputDirectory",
       "--properties", "c:/path/ldifcompare.properties",
+      "[--delete]"
   
     };
     final String description =
@@ -205,7 +221,8 @@ public class LdifUtilities extends CommandLineTool {
             + "I.e. a comma separated list of attributes to ignore when comparing entries.\n"
             + "Attributes that one wants to ignore can be e.g. lastLogon etc.\n\n"
             + "The tool uses the DN to match entries unless the properties file contains the following key/value:\n"
-            + "match-attribute=nameOfAttribute";
+            + "match-attribute=nameOfAttribute\n\n"
+            + "If the argument -d | --delete is used then a file named yyyy-MM-dd HHmmss-changetype-delete-right.ldif will be created.";
     examples.put(args, description);
 
     return examples;

@@ -12,7 +12,7 @@
 # Instructions
 
 For help run:
-`java -jar LDIFCompare-1.0-SNAPSHOT.jar --help`
+`java -jar LDIFCompare-1.3-SNAPSHOT.jar --help`
 
 # Example scenario
 
@@ -53,6 +53,7 @@ yyyy-MM-dd HHmmss
 - -reverse-change_records.txt, contains the the modifications that must be performed on an entry from the "right" file to match the entry from the "left" file.
 - -unique-\<left file name>.ldif, contains the entries that only exist in the "left" file.
 - -unique-\<right file name>.ldif, contains the entries that only exist in the "right" file. 
+- (Optional) -changetype-delete-right.ldif, contains change records where the operation is 'delete' for entries that only exist in the "right" file
 
 # Example usage
 
@@ -83,6 +84,11 @@ Handles only LDIF files containing content records or add records. Modify record
  \- Bug fixed/refactoring    
  ! security bug fix         
  ~ partial implementation   
+
+v1.3
+\+ Added new argument, `-d` or `--delete` that creates an LDIF file that contains delete operations for entries that are missing from the "left" file, i.e. for deleting entries that only exist in the "right" file.
+
+\* Improved performance when using an attribute as key to match entries between files. Previously matching two files containing 60 000 entries (~18 MB files) and creating the diffs took about ~13 minutes. Now it takes 3 seconds on my machine.
 
 v1.2
 

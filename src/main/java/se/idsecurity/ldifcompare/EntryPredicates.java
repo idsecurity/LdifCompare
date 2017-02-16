@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2015 almu
+ * Copyright (C) 2015-2017 almu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 public class EntryPredicates {
     
     /**
-     * Indicates whether this entry contains an attribute with the given name and value 
+     * Indicates whether this entry contains an attribute with the provided name and value 
      * @param attributeName
      * @param attributeValue
      * @return 
@@ -45,7 +45,7 @@ public class EntryPredicates {
     }
     
     /**
-     * Indicates whether this entry doesn't contain an attribute with the given name and value
+     * Indicates whether this entry doesn't contain an attribute with the provided name and value
      * @param attributeName
      * @param attributeValue
      * @return 
