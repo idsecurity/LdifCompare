@@ -86,6 +86,7 @@ Handles only LDIF files containing content records or add records. Modify record
  ~ partial implementation   
 
 v1.3
+
 \+ Added new argument, `-d` or `--delete` that creates an LDIF file that contains delete operations for entries that are missing from the "left" file, i.e. for deleting entries that only exist in the "right" file.
 
 \* Improved performance when using an attribute as key to match entries between files. Previously matching two files containing 60 000 entries (~18 MB files) and creating the diffs took about ~13 minutes. Now it takes 3 seconds on my machine.
