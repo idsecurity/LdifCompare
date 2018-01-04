@@ -4,7 +4,7 @@
 
 # Requirements
 
-- Java 8u40 or newer
+- Java 8u151 or newer
 - UnboundID LDAP SDK
 - SLF4J
 - Apache Commons Lang
@@ -12,7 +12,7 @@
 # Instructions
 
 For help run:
-`java -jar LDIFCompare-1.3-SNAPSHOT.jar --help`
+`java -jar LDIFCompare-1.4-SNAPSHOT.jar --help`
 
 # Example scenario
 
@@ -61,7 +61,7 @@ Let's say you have two files you want to compare, the original "left" file and t
 
 You would execute the following command to compare them:
 
-`java -jar LDIFCompare-1.0.jar --ldifLeft ./left.ldif --ldifRight ./right.ldif --output /path/to/outputdirectory --properties ./ldifcompare.properties`
+`java -jar LDIFCompare-1.4.jar --ldifLeft ./left.ldif --ldifRight ./right.ldif --output /path/to/outputdirectory --properties ./ldifcompare.properties`
 
 The `ldifcompare.properties` file must contains one property called `ignore-attributes=attr1,attr2`.
 The values of the property are the names of the attributes to ignore when comparing, separated with a comma.
@@ -83,7 +83,13 @@ Handles only LDIF files containing content records or add records. Modify record
  \* Improved/changed feature 
  \- Bug fixed/refactoring    
  ! security bug fix         
- ~ partial implementation   
+ ~ partial implementation
+
+v1.4 Beta 1
+ 
+\+ Added support for a new property key `ignore-attributes-starts-with` which can be used to remove attributes that start with a string.
+
+For example `ignore-attributes-starts-with=nrf,cid` will remove all attributes whose names start with `nrf` or `cid`.
 
 v1.3
 

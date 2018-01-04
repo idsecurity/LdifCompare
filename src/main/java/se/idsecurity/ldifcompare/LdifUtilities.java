@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2015-2017 almu
+ * Copyright (C) 2015-2018 almu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -155,7 +155,7 @@ public class LdifUtilities extends CommandLineTool {
         
         MatchingAttributeNames man = property.getMatchingAttributeNames();
         
-        LdifCompare compare = new LdifCompare(leftLdif, rightLdif, outputDirectory, property.getCommaSeparatedPropertyAsList("ignore-attributes"), man);
+        LdifCompare compare = new LdifCompare(leftLdif, rightLdif, outputDirectory, property.getCommaSeparatedPropertyAsList("ignore-attributes"), property.getCommaSeparatedPropertyAsList("ignore-attributes-starts-with"), man);
         
         compare.setGenerateDeleteLdifForMissingEntries(((BooleanArgument)parser.getNamedArgument("delete")).isPresent());
         
@@ -220,6 +220,8 @@ public class LdifUtilities extends CommandLineTool {
             + "ignore-attributes=attr1,attr2\n"
             + "I.e. a comma separated list of attributes to ignore when comparing entries.\n"
             + "Attributes that one wants to ignore can be e.g. lastLogon etc.\n\n"
+            + "You can also specify a ignore-attributes-starts-with property\n\n"
+            + "e.g. ignore-attributes-starts-with=nrf,cid will ignore all attributes whose names start with nrf or cid\n\n"
             + "The tool uses the DN to match entries unless the properties file contains the following key/value:\n"
             + "match-attribute=nameOfAttribute\n\n"
             + "If the argument -d | --delete is used then a file named yyyy-MM-dd HHmmss-changetype-delete-right.ldif will be created.";
